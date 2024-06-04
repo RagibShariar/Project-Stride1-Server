@@ -1,6 +1,7 @@
 const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -8,6 +9,28 @@ const port = process.env.PORT || 5000;
 // middlewares
 app.use(cors());
 app.use(express.json());
+
+// jwt token create 
+const createToken = (user) => {
+  const token = jwt.sign({
+    email: user.email,
+  }, 'secret', { expiresIn: '7d' });
+  return token;
+}
+
+// verify token 
+const verifyToken = (req, res, next) => {
+  const token = req.headers.authorization.split(" ")[1];
+  const verify = jwt.verify(token, "secret");
+  if (!verify?.email) {
+    return res.send("You are not authorized");
+  }
+  req.user = verify.email;
+  next();
+}
+
+
+
 
 // MongoDB Connections
 const uri =
@@ -44,7 +67,7 @@ async function run() {
     });
 
     // update a single product - PUT/PATCH
-    app.put("/products/:id", async (req, res) => {
+    app.put("/products/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const updatedData = req.body;
       // console.log(updatedData)
@@ -58,15 +81,15 @@ async function run() {
       res.send(result);
     });
 
-    // create a new product to database - POST
-    app.post("/products", async (req, res) => {
+    // create/add a new product to database - POST
+    app.post("/products", verifyToken, async (req, res) => {
       const newProduct = req.body;
       const result = await productCollection.insertOne(newProduct);
       res.send(result);
     });
 
     // delete a single product from database - DELETE
-    app.delete("/products/:id", async (req, res) => {
+    app.delete("/products/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       // console.log("please delete product id: ", id);
       const query = { _id: new ObjectId(id) };
@@ -92,7 +115,7 @@ async function run() {
     });
 
     // update a single user - PUT/PATCH
-    app.put("/users/:id", async (req, res) => {
+    app.put("/users/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const updatedData = req.body;
       // console.log(updatedData);
@@ -109,16 +132,22 @@ async function run() {
     // create a new user to database - POST
     app.post("/users", async (req, res) => {
       const newUser = req.body;
+      const token = createToken(newUser);
+      // console.log(token);
       const isUserExist = await userCollection.findOne({email: newUser.email});
       if (isUserExist?._id) {
-        return res.send("login success");
+        return res.send({
+          status: 'success',
+          message: 'Login successful',
+          token,
+        });
       }
-      const result = await userCollection.insertOne(newUser);
-      res.send(result);
+       await userCollection.insertOne(newUser);
+      res.send({token});
     });
 
     // delete a single user from database - DELETE
-    app.delete("/users/:id", async (req, res) => {
+    app.delete("/users/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       // console.log("please delete user id: ", id);
       const query = { _id: new ObjectId(id) };
