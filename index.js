@@ -1,6 +1,7 @@
 const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
+require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
 const app = express();
@@ -33,8 +34,8 @@ const verifyToken = (req, res, next) => {
 
 
 // MongoDB Connections
-const uri =
-  "mongodb+srv://srragib:ksyHGbpzjHXqI5s8@cluster0.iki4bfl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.iki4bfl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -167,15 +168,10 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-  res.send("welcome sample");
+  res.send("welcome to the planet");
 });
 
 app.listen(port, () => {
   console.log(`app is running on ${port}`);
 });
 
-// srragib
-// ksyHGbpzjHXqI5s8
-
-// srragib
-// 5zFI5vw60uQxRyIT
